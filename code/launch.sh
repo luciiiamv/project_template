@@ -2,26 +2,45 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Situarnos en la carpeta principal del proyecto
+# Directorio principal del proyecto
 BASE="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$BASE"
 
-# Crear carpeta para los resultados
-mkdir -p "$BASE/results/data"
+# Crear carpetas para resultados
+mkdir -p results/data
 
-# Fenotipo elegido
+# Fenotipo seleccionado
 HPO="HP:0002612"
 
-echo "Descargando genes del fenotipo $HPO"
+echo "1. Descargando genes de HPO..."
 
-# Descargar las asociaciones desde HPO
-curl -fL --retry 3 \
+curl -fsSL --retry 3 \
   "https://ontology.jax.org/api/network/annotation/${HPO}/download/gene" \
-  -o "$BASE/results/data/hpo_query.txt"
+  -o results/data/hpo_query.txt
 
-echo "Descarga finalizada"
+# Extraer los simbolos de los genes
+tail -n +2 results/data/hpo_query.txt |
+  cut -f2 |
+  tr -d '\r' |
+  sed '/^[[:space:]]*$/d' |
+  sort -u > results/data/hpo_genes.txt
 
-# Mostrar las primeras lineas del archivo
-head -n 5 "$BASE/results/data/hpo_query.txt"
+echo "Genes obtenidos:"
+wc -l results/data/hpo_genes.txt
 
-# Mostrar numero de lineas
-wc -l "$BASE/results/data/hpo_query.txt"
+echo "2. Descargando interacciones STRING..."
+
+curl -fsSL --retry 3 \
+  --data-urlencode "identifiers@results/data/hpo_genes.txt" \
+  --data-urlencode "species=9606" \
+  --data-urlencode "required_score=900" \
+  --data-urlencode "add_nodes=0" \
+  --data-urlencode "caller_identity=UMA_BiologiaSistemas_HP0002612" \
+  "https://version-12-5.string-db.org/api/tsv/network" \
+  -o results/data/string_network.tsv
+
+echo "3. Analizando la red..."
+
+Rscript code/analyse_net.R
+
+echo "ANALISIS COMPLETADO"
