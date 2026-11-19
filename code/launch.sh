@@ -43,4 +43,24 @@ echo "3. Analizando la red..."
 
 Rscript code/analyse_net.R
 
-echo "ANALISIS COMPLETADO"
+
+echo "4. Preparando genes para enriquecimiento..."
+
+# Extraer las proteinas presentes en la red
+tail -n +2 results/clusters_genes.csv |
+  cut -d, -f1 |
+  tr -d '"' > results/data/genes_red.txt
+
+echo "5. Enriquecimiento funcional..."
+
+curl -fsSL --retry 3 \
+  --data-urlencode "identifiers@results/data/genes_red.txt" \
+  --data-urlencode "species=9606" \
+  --data-urlencode "caller_identity=UMA_BiologiaSistemas_HP0002612" \
+  "https://version-12-5.string-db.org/api/tsv/enrichment" \
+  -o results/enriquecimiento_red.tsv
+
+test -s results/enriquecimiento_red.tsv
+
+echo "Enriquecimiento completado"
+

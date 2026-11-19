@@ -55,3 +55,52 @@ plot(red,
 dev.off()
 
 cat("Analisis completado correctamente\n")
+
+
+# ANALISIS DE CLUSTERES
+
+cat("\nANALISIS DE CLUSTERES\n")
+
+# Detectar comunidades con Louvain
+comunidades <- cluster_louvain(
+  red,
+  weights = E(red)$score
+)
+
+# Numero de clusteres
+cat("Numero de clusteres:",
+    length(comunidades), "\n")
+
+# Crear tabla de proteinas y cluster
+tabla_clusters <- data.frame(
+  Gen = V(red)$name,
+  Cluster = membership(comunidades)
+)
+
+# Guardar resultados
+write.csv(
+  tabla_clusters,
+  "results/clusters_genes.csv",
+  row.names = FALSE
+)
+
+# Mostrar tamanos de los clusteres
+print(sizes(comunidades))
+
+# Crear grafico coloreado por cluster
+set.seed(42)
+
+pdf("results/red_clusteres.pdf",
+    width = 12, height = 10)
+
+plot(
+  comunidades,
+  red,
+  vertex.size = 9,
+  vertex.label.cex = 0.65,
+  main = "Clusteres - HP:0002612"
+)
+
+dev.off()
+
+cat("Analisis de clusteres completado\n")
